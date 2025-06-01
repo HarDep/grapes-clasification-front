@@ -377,9 +377,6 @@ const GrapeDiseaseClassifier = () => {
     setIsPaused(true);
 
     try {
-      
-      // Paso 1: Verificación
-      setCurrentStep(1);
       const verifyFormData = new FormData();
       verifyFormData.append('image', selectedImage);
 
@@ -429,6 +426,9 @@ const GrapeDiseaseClassifier = () => {
           })
           return;
         }
+        
+        // Paso 1: Verificación
+        setCurrentStep(1);
 
         // Simular el proceso visual
         simulateImageProcessing();
