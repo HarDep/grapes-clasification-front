@@ -202,7 +202,16 @@ const GrapeDiseaseClassifier = () => {
   };
 
   const simulateImageProcessing = async () => {
-    if (!canvasRef.current || !imagePreview) return;
+    if (!imagePreview) return;
+    
+    // Asegurar que el canvas esté disponible
+    if (!canvasRef.current) {
+      // Esperar un momento y reintentar
+      setTimeout(() => {
+        simulateImageProcessing();
+      }, 100);
+      return;
+    }
     
     setIsProcessing(true);
     setCurrentStep(0);
@@ -368,8 +377,6 @@ const GrapeDiseaseClassifier = () => {
     setIsPaused(true);
 
     try {
-      // Simular el proceso visual
-      simulateImageProcessing();
       
       // Paso 1: Verificación
       setCurrentStep(1);
@@ -389,13 +396,7 @@ const GrapeDiseaseClassifier = () => {
       setVerificationResult(verifyData);
       
       if (verifyData.is_grape_leaf) {
-        // Simular pasos de procesamiento
-        for (let i = 2; i <= processingSteps.length; i++) {
-          await new Promise(resolve => setTimeout(resolve, processingSteps[i-1]?.duration || 1000));
-          setCurrentStep(i);
-        }
-
-        // Paso 2: Clasificación de enfermedad
+        // Clasificación de enfermedad
         const classifyFormData = new FormData();
         classifyFormData.append('image', selectedImage);
 
@@ -409,6 +410,34 @@ const GrapeDiseaseClassifier = () => {
         }
 
         const classifyData: ClassificationResponse = await classifyResponse.json();
+
+        let is_grape_leaf = false;
+
+        for (const key in classifyData.all_predictions) {
+          const pred = classifyData.all_predictions[key];
+          if (pred > 0.5) {
+            is_grape_leaf = true;
+            break;
+          }
+        }
+
+        if (!is_grape_leaf) {
+          setVerificationResult({
+            is_grape_leaf: false,
+            grape_probability: 0,
+            message: '❌ La imagen no parece ser una hoja de uva'
+          })
+          return;
+        }
+
+        // Simular el proceso visual
+        simulateImageProcessing();
+        // Simular pasos de procesamiento
+        for (let i = 2; i <= processingSteps.length; i++) {
+          await new Promise(resolve => setTimeout(resolve, processingSteps[i-1]?.duration || 1000));
+          setCurrentStep(i);
+        }
+
         setClassificationResult(classifyData);
       }
 
@@ -674,7 +703,6 @@ const GrapeDiseaseClassifier = () => {
                   </div>
                   <div className="space-y-2 text-sm">
                     <p><strong>Estado:</strong> No es una hoja de uva</p>
-                    <p><strong>Confianza:</strong> {(verificationResult.grape_probability * 100).toFixed(1)}%</p>
                     <p className="text-red-700">{verificationResult.message}</p>
                   </div>
                   <div className="mt-4 p-3 bg-red-100 rounded">
